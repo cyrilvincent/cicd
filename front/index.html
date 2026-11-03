@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Testeur d’API – Formation CI/CD</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Martian+Mono:wght@400;500&family=Schibsted+Grotesk:wght@400;500;700&display=swap">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="wrap">
+    <header>
+      <h1>Formation CI/CD Client</h1>
+      <p class="lede">Envoie une requête à chacune des trois routes de ton API FastAPI et vérifie la réponse.</p>
+    </header>
+
+    <section class="bar" aria-label="Réglages">
+      <div class="field">
+        <label for="base-url">Adresse de l’API</label>
+        <input id="base-url" type="url" value="http://127.0.0.1:8000" spellcheck="false" autocomplete="off">
+      </div>
+      <div class="actions">
+        <button id="run-all" class="btn primary" type="button">Tout lancer</button>
+        <a id="docs-link" class="link" href="http://127.0.0.1:8000/docs" target="_blank" rel="noopener">Ouvrir /docs</a>
+      </div>
+      <p id="summary" class="summary" role="status" aria-live="polite">Aucun test lancé.</p>
+    </section>
+
+    <ol class="pipeline">
+      <li class="stage" data-stage="root" data-state="idle">
+        <span class="node" aria-hidden="true"></span>
+        <div class="head">
+          <h2><span class="method">GET</span> <code>/</code></h2>
+          <span class="chip">En attente</span>
+        </div>
+        <p class="desc">Page d’accueil : renvoie le nom de la formation.</p>
+        <button class="btn send" type="button">Envoyer</button>
+        <div class="result" hidden>
+          <p class="meta"></p>
+          <ul class="checks"></ul>
+          <pre class="body"></pre>
+        </div>
+      </li>
+
+      <li class="stage" data-stage="versions" data-state="idle">
+        <span class="node" aria-hidden="true"></span>
+        <div class="head">
+          <h2><span class="method">GET</span> <code>/versions</code></h2>
+          <span class="chip">En attente</span>
+        </div>
+        <p class="desc">Renvoie la version de l’API et indique si elle tourne en production.</p>
+        <button class="btn send" type="button">Envoyer</button>
+        <div class="result" hidden>
+          <p class="meta"></p>
+          <ul class="checks"></ul>
+          <pre class="body"></pre>
+        </div>
+      </li>
+
+      <li class="stage" data-stage="add" data-state="idle">
+        <span class="node" aria-hidden="true"></span>
+        <div class="head">
+          <h2><span class="method">GET</span> <code>/add/{a}/{b}</code></h2>
+          <span class="chip">En attente</span>
+        </div>
+        <p class="desc">Additionne deux nombres. Le test vérifie que le résultat vaut a + b.</p>
+        <div class="params">
+          <label>a <input id="num-a" type="number" step="any" value="2"></label>
+          <label>b <input id="num-b" type="number" step="any" value="3"></label>
+        </div>
+        <button class="btn send" type="button">Envoyer</button>
+        <div class="result" hidden>
+          <p class="meta"></p>
+          <ul class="checks"></ul>
+          <pre class="body"></pre>
+        </div>
+      </li>
+    </ol>
+  </main>
+
+  <script src="script.js" defer></script>
+</body>
+</html>
