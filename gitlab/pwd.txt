@@ -1,0 +1,5 @@
+Généré dans config/initial_root_password : effacé après 24h
+mdYFqGex7lUjbXAP/NdeCUcOHdIH/PrJ2rO6KsucyuY=
+Login root
+group = formation
+project = cicd
