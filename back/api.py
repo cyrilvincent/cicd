@@ -28,6 +28,10 @@ app.add_middleware(
 def root():
     return "Formation CI/CD"
 
+@app.get("/health")
+def health():
+    return True
+
 
 @app.get("/versions")
 def versions():
