@@ -1,7 +1,7 @@
-from fastapi import FastAPI, __version__
-from fastapi.middleware.cors import CORSMiddleware
 import config
 import service
+from fastapi import FastAPI, __version__
+from fastapi.middleware.cors import CORSMiddleware
 
 print(f"Starting FastAPI {__version__} on prod: {config.is_prod}")
 
@@ -24,9 +24,11 @@ app.add_middleware(
     allow_headers=["Authorization", "Content-Type"],
 )
 
+
 @app.get("/")
 def root():
     return "Formation CI/CD"
+
 
 @app.get("/health")
 def health():
@@ -37,13 +39,14 @@ def health():
 def versions():
     return {"version": config.version, "is_prod": config.is_prod}
 
+
 @app.get("/add/{a}/{b}")
 def add(a: float, b: float):
     s = service.MyService()
     return {"result": s.add(a, b)}
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     print(f"FastAPI version: {__version__}")
     import uvicorn
     uvicorn.run("api:app", workers=1, reload=False)
