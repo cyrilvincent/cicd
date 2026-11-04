@@ -5,3 +5,6 @@ class MyService:
 
     def add(self, a: float, b: float):
         return a + b
+
+    def multiply(self, a: float, b: float):
+        return a * b
