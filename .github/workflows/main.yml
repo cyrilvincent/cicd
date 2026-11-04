@@ -22,4 +22,4 @@ jobs:
           cache: pip
           cache-dependency-path: back/requirements-dev.txt
       - run: pip install -r requirements-dev.txt
-      - run: ruff check .
+      - run: ruff check . --config "src=['back']"
