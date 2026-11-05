@@ -1,0 +1,115 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+env:
+  PYTHON_VERSION: "3.12"
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: back
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: |
+            ./back/requirements-dev.txt
+            ./back/requirements.txt
+      - run: pip install -r requirements-dev.txt
+      - run: ruff check . --config "src=['.']" # A faire tourner dans back en local
+
+  unit-tests:
+    needs: lint
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: back
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+      - run: pip install -r requirements-dev.txt
+      - run: python -m unittest tests -v # tests = tests.py ou dossier tests/*
+
+  security:
+    needs: lint
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: requirements.txt
+      - run: pip install pip-audit bandit
+      - run: pip-audit -r requirements.txt
+      - run: bandit -q -r app
+
+  # PR vers main uniquement : vérifie que l'image se construit (sans push)
+  build-check:
+    needs: [unit-tests, security]
+    if: github.event_name == 'pull_request' && github.base_ref == 'main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+
+  # main uniquement : build, smoke test /health, puis push
+  build-image:
+    needs: [unit-tests, security]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image: ${{ steps.meta.outputs.image }}
+      sha: ${{ steps.meta.outputs.sha }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: meta
+        run: |
+          echo "image=${IMAGE_NAME,,}" >> "$GITHUB_OUTPUT"
+          echo "sha=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          load: true
+          tags: ${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.sha }}
+
+      - name: Smoke test /health
+        run: |
+          docker run -d --name api -p 8000:8000 ${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.sha }}
+          curl -sf --retry 10 --retry-delay 2 --retry-connrefused http://localhost:8000/health | grep -q true
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Push
+        run: |
+          docker tag ${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.sha }} ${{ steps.meta.outputs.image }}:latest
+          docker push ${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.sha }}
+          docker push ${{ steps.meta.outputs.image }}:latest
+
+  # main uniquement
+  deploy:
+    needs: build-image
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - run: echo "Déploiement de ${{ needs.build-image.outputs.image }}:${{ needs.build-image.outputs.sha }}"

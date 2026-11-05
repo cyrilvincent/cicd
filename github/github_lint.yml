@@ -10,13 +10,19 @@ env:
 
 jobs:
   lint:
+    # if: false # pour désactiver
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: back
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: pip
-          cache-dependency-path: requirements-dev.txt
+          cache-dependency-path: |
+            ./back/requirements-dev.txt
+            ./back/requirements.txt
       - run: pip install -r requirements-dev.txt
-      - run: ruff check .
+      - run: ruff check . --config "src=['.']" # A faire tourner dans back en local

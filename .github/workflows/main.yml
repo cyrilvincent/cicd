@@ -21,6 +21,8 @@ jobs:
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: pip
-          cache-dependency-path: ./back/requirements-dev.txt
+          cache-dependency-path: |
+            ./back/requirements-dev.txt
+            ./back/requirements.txt
       - run: pip install -r requirements-dev.txt
       - run: ruff check . --config "src=['.']" # A faire tourner dans back en local
