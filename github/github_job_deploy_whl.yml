@@ -1,0 +1,34 @@
+deploy-staging:
+    needs: build-whl
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment:
+      name: staging
+      url: ${{ vars.APP_URL }}
+    concurrency: deploy-staging
+    defaults:
+      run:
+        working-directory: .      # pas de back/ ici : on déploie juste un fichier
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: wheel
+          path: dist
+      - uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          source: back/dist/*.whl
+          target: /opt/mon-api/releases/  # Copie le WHL dans ce répertoire
+          strip_components: 1
+      - uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          script: |
+            /opt/mon-api/venv/bin/pip install --force-reinstall \
+              /opt/mon-api/releases/${{ needs.build-whl.outputs.whl }}  
+            sudo systemctl restart mon-api
+          # Exécute le WHL

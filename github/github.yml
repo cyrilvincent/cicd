@@ -10,9 +10,11 @@ on:
 #    targets: ["prod", "staging"]
 
 env:
+  TARGET: ${{ inputs.environment }}
 #  TARGET: $${{matrix.targets}}
 #  TARGET: "prod"
 #  DB_NAME: "db_"${{TARGET}}
+#  TARGET: ${{ inputs.environment }}
   PYTHON_VERSION: "3.12"
   IMAGE_NAME: ghcr.io/${{ github.repository }}
 

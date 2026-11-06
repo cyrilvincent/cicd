@@ -1,0 +1,35 @@
+deploy-production:
+    needs: [build-whl, deploy-staging]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment:
+      name: production            # Required reviewers = approbation manuelle
+      url: ${{ vars.APP_URL }}
+    concurrency: deploy-production
+    defaults:
+      run:
+        working-directory: .
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: wheel
+          path: dist
+      - uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          source: dist/*.whl
+          target: /opt/mon-api/releases/
+          strip_components: 1
+      - uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          script: |
+            /opt/mon-api/venv/bin/pip install --force-reinstall \
+              /opt/mon-api/releases/${{ needs.build-whl.outputs.whl }}
+            sudo systemctl restart mon-api
+      - name: Vérification /health
+        run: curl -sf --retry 10 --retry-delay 3 --retry-connrefused ${{ vars.APP_URL }}/health | grep -q true

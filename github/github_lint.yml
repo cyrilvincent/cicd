@@ -8,20 +8,24 @@ on:
 env:
   PYTHON_VERSION: "3.12"
 
+defaults:
+  run:
+    working-directory: back     # s'applique à toutes les étapes "run"
+
 jobs:
   lint:
     # if: false # pour désactiver
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: back
+#    defaults:  # Déplacé + haut
+#      run:
+#        working-directory: back
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-python@v6
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: pip
-          cache-dependency-path: |
+          cache-dependency-path: | # Le cache ne tient pas compte de working directory
             ./back/requirements-dev.txt
             ./back/requirements.txt
       - run: pip install -r requirements-dev.txt

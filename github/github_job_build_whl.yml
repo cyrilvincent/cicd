@@ -1,0 +1,26 @@
+  build-whl:
+    needs: [unit-tests, security]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      whl: ${{ steps.name.outputs.whl }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - run: pip install build
+      - run: python -m build --wheel
+      - id: name
+        run: echo "whl=$(basename dist/*.whl)" >> "$GITHUB_OUTPUT"
+      - name: Test d'installation du wheel
+        run: |
+          python -m venv /tmp/venv
+          /tmp/venv/bin/pip install dist/*.whl
+          cd /tmp && /tmp/venv/bin/python -c "import api"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wheel
+          path: back/dist/*.whl
+          retention-days: 90
