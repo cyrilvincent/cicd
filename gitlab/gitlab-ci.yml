@@ -56,6 +56,33 @@ security:
     - bandit -q -r . -x ./unittests.py,./.cache
   allow_failure: true
 
+dependency-scan:
+  stage: test
+  script:
+    - pip install pip-audit
+    - pip-audit -r requirements.txt --desc
+    - pip-audit -r requirements.txt --format json -o pip-audit.json || true
+  artifacts:
+    when: always
+    paths:
+      - pip-audit.json
+    expire_in: 1 week
+  allow_failure: true
+
+dependency-scan-front:
+  stage: test
+  image: node:22-slim
+  script:
+    - npm ci
+    - npm audit --omit=dev --audit-level=high
+    - npm audit --omit=dev --json > npm-audit.json || true
+  artifacts:
+    when: always
+    paths:
+      - npm-audit.json
+    expire_in: 1 week
+  allow_failure: true
+
 # --- Image Docker, publiée dans le registre GitLab ----------------------------
 build-image:
   stage: build

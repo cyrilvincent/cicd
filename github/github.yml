@@ -5,12 +5,20 @@ on:
     branches: [main, dev] # Mettre en place + tard
   pull_request:
 
+#strategy:
+#  matrix:
+#    targets: ["prod", "staging"]
+
 env:
+#  TARGET: $${{matrix.targets}}
+#  TARGET: "prod"
+#  DB_NAME: "db_"${{TARGET}}
   PYTHON_VERSION: "3.12"
   IMAGE_NAME: ghcr.io/${{ github.repository }}
 
 jobs:
   lint:
+#    if: TARGET!="prod"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5

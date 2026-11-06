@@ -1,0 +1,12 @@
+  security:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx eslint . --no-warn-ignored
+      - run: npm audit --omit=dev --audit-level=high

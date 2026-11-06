@@ -1,0 +1,22 @@
+  dependency-scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    continue-on-error: true   # informatif ; retire-le pour bloquer
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Scan des dépendances (prod)
+        run: npm audit --omit=dev --audit-level=high
+      - name: Rapport JSON
+        if: always()
+        run: npm audit --omit=dev --json > npm-audit.json || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: npm-audit-report
+          path: npm-audit.json
+          retention-days: 7

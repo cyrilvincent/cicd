@@ -1,0 +1,20 @@
+  secrets-scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # indispensable : sans l'historique complet, rien à auditer
+
+      - name: Scan des secrets
+        run: |
+          docker run --rm -v "$PWD:/repo" ghcr.io/gitleaks/gitleaks:latest \
+            detect --source /repo --redact --verbose \
+            --report-format sarif --report-path /repo/gitleaks.sarif
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: gitleaks-report
+          path: gitleaks.sarif
+          retention-days: 7
