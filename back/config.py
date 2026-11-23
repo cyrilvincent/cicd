@@ -1,2 +1,3 @@
 is_prod = False
 version = "0.0.1"
+name = "Formation"
