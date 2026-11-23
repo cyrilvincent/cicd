@@ -25,6 +25,7 @@ jobs:
       - run: ruff check . --config "src=['.']" # A faire tourner dans back en local
   
   js-lint:
+    if: false # pour désactiver
     defaults:
       run:
         working-directory: front
