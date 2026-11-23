@@ -223,3 +223,5 @@ gitlab/data/
 gitlab/config/
 gitlab/logs/
 .idea
+~*.pptx
+
