@@ -46,6 +46,10 @@ def add(a: float, b: float):
     s = service.MyService()
     return {"result": s.add(a, b)}
 
+@app.get("/mul/{a}/{b}")
+def mul(a: float, b: float):
+    s = service.MyService()
+    return {"result": s.multiply(a, b)}
 
 if __name__ == "__main__":
     print(f"FastAPI version: {__version__}")

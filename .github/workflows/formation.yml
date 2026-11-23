@@ -1,0 +1,41 @@
+name: Formation CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+env:
+  PYTHON_VERSION: "3.14"
+
+
+jobs:
+  python-lint:
+    # if: false # pour désactiver
+    defaults:
+      run:
+        working-directory: back
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - run: pip install -r requirements-dev.txt
+      - run: ruff check . --config "src=['.']" # A faire tourner dans back en local
+  
+  js-lint:
+    if: false # pour désactiver
+    defaults:
+      run:
+        working-directory: front
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - name: Lint JS
+        run: npx --yes eslint@9 .
+      - name: Lint HTML
+        run: npx --yes htmlhint "**/*.html"
