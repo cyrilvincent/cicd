@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+env:
+  PYTHON_VERSION: "3.12"
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: back
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: |
+            ./back/requirements-dev.txt
+            ./back/requirements.txt
+      - run: pip install -r requirements-dev.txt
+      - run: ruff check . --config "src=['.']" # A faire tourner dans back en local
+
+  unit-tests:
+    needs: lint
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: back
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+      - run: pip install -r requirements-dev.txt
+      - run: |
+          coverage run --source=. -m unittest tests -v
+          coverage report
+          coverage html
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-html
+          path: back/htmlcov
+
