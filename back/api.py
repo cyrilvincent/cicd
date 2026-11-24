@@ -1,8 +1,7 @@
-from fastapi import FastAPI, __version__
-from fastapi.middleware.cors import CORSMiddleware
-
 import config
 import service
+from fastapi import FastAPI, __version__
+from fastapi.middleware.cors import CORSMiddleware
 
 print(f"Starting FastAPI {__version__} on prod: {config.is_prod}")
 
