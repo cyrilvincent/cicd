@@ -50,6 +50,8 @@ jobs:
         run:
           working-directory: back
     runs-on: ubuntu-latest
+    environment:
+      name: staging
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-python@v6
@@ -62,6 +64,7 @@ jobs:
         env:
           MY_SECRET: ${{secrets.MY_SECRET}}
       - run: pip install -r requirements-dev.txt
+      - run: cp config-staging.py config.py
       - run: |
           coverage run --source=. -m unittest tests -v
           coverage report
