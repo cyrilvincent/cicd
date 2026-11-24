@@ -1,7 +1,11 @@
 import unittest
+from service import MyService
 
 
 class UnitTests(unittest.TestCase):
 
-    def setUp(self):
-        pass
+    def test_service_add_1(self):
+        s = MyService()
+        result = s.add(1, 2)
+        self.assertEqual(result, 3)
+
