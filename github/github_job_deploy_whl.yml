@@ -1,6 +1,7 @@
 deploy-staging:
     needs: build-whl
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    when: manual
     runs-on: ubuntu-latest
     environment:
       name: staging

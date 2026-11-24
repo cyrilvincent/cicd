@@ -1,55 +1,32 @@
-name: Deploy
-
-on:
-  workflow_call:
-    inputs:
-      environment:
-        required: true
-        type: string
-
-jobs:
-  deploy:
+deploy-staging:
+    needs: build-whl
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    when: manual
     runs-on: ubuntu-latest
-    timeout-minutes: 10
     environment:
-      name: ${{ inputs.environment }}
+      name: staging
       url: ${{ vars.APP_URL }}
-    concurrency: deploy-${{ inputs.environment }}
+    concurrency: deploy-staging
+    defaults:
+      run:
+        working-directory: .      # pas de back/ ici : on déploie juste un fichier
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Préparer SSH
-        env:
-          SSH_KEY: ${{ secrets.SSH_KEY }}
-          SSH_HOST: ${{ secrets.SSH_HOST }}
-        run: |
-          install -m 700 -d ~/.ssh
-          echo "$SSH_KEY" > ~/.ssh/id_deploy
-          chmod 600 ~/.ssh/id_deploy
-          ssh-keyscan -H "$SSH_HOST" >> ~/.ssh/known_hosts
-
-      - name: Copier le code
-        env:
-          SSH_USER: ${{ secrets.SSH_USER }}
-          SSH_HOST: ${{ secrets.SSH_HOST }}
-        run: |
-          SHORT="${GITHUB_SHA::7}"
-          rsync -az --delete \
-            --exclude 'unittests.py' --exclude '__pycache__' --exclude '*.pyc' \
-            -e "ssh -i ~/.ssh/id_deploy" \
-            back/ "$SSH_USER@$SSH_HOST:/opt/mon-api/releases/$SHORT/"
-
-      - name: Installer et redémarrer
-        env:
-          SSH_USER: ${{ secrets.SSH_USER }}
-          SSH_HOST: ${{ secrets.SSH_HOST }}
-        run: |
-          SHORT="${GITHUB_SHA::7}"
-          ssh -i ~/.ssh/id_deploy "$SSH_USER@$SSH_HOST" bash -s <<EOF
-          set -e
-          cd /opt/mon-api/releases/$SHORT
-          /opt/mon-api/venv/bin/pip install -r requirements.txt
-          ln -sfn /opt/mon-api/releases/$SHORT /opt/mon-api/current
-          sudo systemctl restart mon-api
-          ls -1dt /opt/mon-api/releases/* | tail -n +6 | xargs -r rm -rf
-          EOF
+      - uses: actions/download-artifact@v4
+        with:
+          name: wheel
+          path: dist
+      - uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          source: *
+          target: /opt/mon-api/releases/  # Copie le WHL dans ce répertoire
+          strip_components: 1
+      - uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          script: sudo systemctl restart mon-api
+          # Exécute le WHL
