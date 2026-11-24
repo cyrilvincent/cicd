@@ -51,6 +51,8 @@ jobs:
           working-directory: back
     runs-on: ubuntu-latest
     steps:
+      - env:
+          MY_SECRET : ${{secrets.MY_SECRET}}
       - uses: actions/checkout@v5
       - uses: actions/setup-python@v6
         with:
