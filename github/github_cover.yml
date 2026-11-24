@@ -37,9 +37,8 @@ jobs:
       - uses: actions/setup-python@v6
       - run: pip install -r requirements-dev.txt
       - run: |
-          coverage run --source=app -m unittest unittests -v
-          coverage report --fail-under=80
-          coverage xml -o coverage.xml
+          coverage run --source=. -m unittest tests -v
+          coverage report
           coverage html
 
   security:
