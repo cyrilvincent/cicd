@@ -51,8 +51,6 @@ jobs:
           working-directory: back
     runs-on: ubuntu-latest
     steps:
-      - env:
-          MY_SECRET : ${{secrets.MY_SECRET}}
       - uses: actions/checkout@v5
       - uses: actions/setup-python@v6
         with:
@@ -61,6 +59,8 @@ jobs:
           cache-dependency-path: | # Le cache ne tient pas compte de working directory
             ./back/requirements-dev.txt
             ./back/requirements.txt
+        env:
+          MY_SECRET: ${{secrets.MY_SECRET}}
       - run: pip install -r requirements-dev.txt
       - run: |
           coverage run --source=. -m unittest tests -v
