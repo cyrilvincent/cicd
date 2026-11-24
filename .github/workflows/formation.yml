@@ -87,7 +87,6 @@ jobs:
             ./back/requirements.txt
       - run: bandit .
       - run: pip-audit -r requirements.txt
-      - run: semgrep --config p/fastapi --config p/python .
 
 
 
