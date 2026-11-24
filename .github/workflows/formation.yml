@@ -74,6 +74,9 @@ jobs:
   
   security:
     needs: tests-coverage
+    defaults:
+      run:
+        working-directory: back
     runs-on: ubuntu-latest
     continue-on-error: true
     steps :
@@ -82,7 +85,7 @@ jobs:
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: pip
-          cache-dependency-path: |
+          cache-dependency-path: | # Le cache ne tient pas compte de working directory
             ./back/requirements-dev.txt
             ./back/requirements.txt
       - run: pip install -r requirements-dev.txt
