@@ -1,5 +1,6 @@
 import unittest
 
+import config
 from service import MyService
 
 
@@ -19,4 +20,10 @@ class UnitTests(unittest.TestCase):
         s = MyService()
         result = s.get_credentials()
         self.assertIsNotNone(result)
+
+    def test_version(self):
+        version = config.version
+        self.assertIsNotNone(version)
+        print(version, config.env)
+
 

@@ -1,0 +1,19 @@
+  security:
+    needs: tests-coverage
+    defaults:
+      run:
+        working-directory: back
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps :
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: | # Le cache ne tient pas compte de working directory
+            ./back/requirements-dev.txt
+            ./back/requirements.txt
+      - run: pip install -r requirements-dev.txt
+      - run: python -m bandit .
+      - run: pip-audit -r requirements.txt
