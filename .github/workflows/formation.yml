@@ -73,7 +73,7 @@ jobs:
           path: back/htmlcov
   
   security:
-    needs: python-lint, tests-coverage
+    needs: tests-coverage
     runs-on: ubuntu-latest
     continue-on-error: true
     steps :
