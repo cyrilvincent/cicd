@@ -1,6 +1,7 @@
+import os
+
 import config
 
-import os
 
 class MyService:
 
