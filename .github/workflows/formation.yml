@@ -40,7 +40,7 @@ jobs:
       - name: Lint HTML
         run: npx --yes htmlhint "**/*.html"
   
-  tests:
+  tests-coverage:
     needs: python-lint
     defaults:
         run:
@@ -52,4 +52,8 @@ jobs:
         with:
           python-version: ${{ env.PYTHON_VERSION }}
       - run: pip install -r requirements-dev.txt
-      - run: python -m unittest tests -v
+      - run: |
+          coverage run --source=. -m unittest tests -v
+          coverage report
+          coverage html
+
