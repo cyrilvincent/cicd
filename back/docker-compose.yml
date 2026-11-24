@@ -1,6 +1,8 @@
 services:
   api:
-    image: ${IMAGE} # ou prod
-    build: .
+    image: ghcr.io/cyrilvincent/cicd:latest
+    restart: unless-stopped
     ports:
       - "8000:8000"
+    environment:
+      APP_ENV: prod

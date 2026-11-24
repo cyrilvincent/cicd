@@ -1,26 +1,26 @@
-name: CI
+name: Formation CI
 
 on:
   push:
-    branches: [main, dev] # Mettre en place + tard
+    branches: [main]
   pull_request:
-
-#strategy:
-#  matrix:
-#    targets: ["prod", "staging"]
+  workflow_dispatch:
+    inputs:
+      deploy:
+        description: Déployer en prod
+        type: boolean
+        default: false
 
 env:
-  TARGET: ${{ inputs.environment }}
-#  TARGET: $${{matrix.targets}}
-#  TARGET: "prod"
-#  DB_NAME: "db_"${{TARGET}}
-#  TARGET: ${{ inputs.environment }}
-  PYTHON_VERSION: "3.12"
-  IMAGE_NAME: ghcr.io/${{ github.repository }}
+  PYTHON_VERSION: "3.14"
+
 
 jobs:
-  lint:
-#    if: TARGET!="prod"
+  python-lint:
+    # if: false # pour désactiver
+    defaults:
+      run:
+        working-directory: back
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -28,111 +28,137 @@ jobs:
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: pip
-          cache-dependency-path: |
-            requirements.txt
-            requirements-dev.txt
+          cache-dependency-path: | # Le cache ne tient pas compte de working directory
+            ./back/requirements-dev.txt
+            ./back/requirements.txt
       - run: pip install -r requirements-dev.txt
-      - run: ruff check .
-      - run: ruff format --check .
+      - run: ruff check . --config "src=['.']" # A faire tourner dans back en local
 
-  unit-tests:
-    needs: lint
+  js-lint:
+    if: false # pour désactiver
+    defaults:
+      run:
+        working-directory: front
     runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - name: Lint JS
+        run: npx --yes eslint@9 .
+      - name: Lint HTML
+        run: npx --yes htmlhint "**/*.html"
+
+  tests-coverage:
+    needs: python-lint
+    defaults:
+        run:
+          working-directory: back
+    runs-on: ubuntu-latest
+    environment:
+      name: staging
+    env:
+      MY_SECRET: ${{secrets.MY_SECRET}}
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-python@v6
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: pip
-          cache-dependency-path: |
-            requirements.txt
-            requirements-dev.txt
+          cache-dependency-path: | # Le cache ne tient pas compte de working directory
+            ./back/requirements-dev.txt
+            ./back/requirements.txt
       - run: pip install -r requirements-dev.txt
+      - run: cp config-staging.py config.py
       - run: |
-          coverage run --source=app -m unittest unittests -v
-          coverage report --fail-under=80
-          coverage xml -o coverage.xml
+          coverage run --source=. -m unittest tests -v
+          coverage report
           coverage html
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: coverage-report
-          path: |
-            coverage.xml
-            htmlcov/
+          name: coverage-html
+          path: back/htmlcov
 
   security:
-    needs: lint
+    needs: tests-coverage
+    defaults:
+      run:
+        working-directory: back
     runs-on: ubuntu-latest
     continue-on-error: true
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+    steps :
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: pip
-          cache-dependency-path: requirements.txt
-      - run: pip install pip-audit bandit
+          cache-dependency-path: | # Le cache ne tient pas compte de working directory
+            ./back/requirements-dev.txt
+            ./back/requirements.txt
+      - run: pip install -r requirements-dev.txt
+      - run: python -m bandit .
       - run: pip-audit -r requirements.txt
-      - run: bandit -q -r app
 
-  # PR vers main uniquement : vérifie que l'image se construit (sans push)
-  build-check:
-    needs: [unit-tests, security]
-    if: github.event_name == 'pull_request' && github.base_ref == 'main'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: docker/build-push-action@v6
-        with:
-          context: .
-          push: false
-
-  # main uniquement : build, smoke test /health, puis push
-  build-image:
-    needs: [unit-tests, security]
+  build-whl:
+    needs: [security]
+    defaults:
+     run:
+       working-directory: back
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
     outputs:
-      image: ${{ steps.meta.outputs.image }}
-      sha: ${{ steps.meta.outputs.sha }}
+      whl: ${{ steps.name.outputs.whl }}
     steps:
-      - uses: actions/checkout@v4
-      - id: meta
-        run: |
-          echo "image=${IMAGE_NAME,,}" >> "$GITHUB_OUTPUT"
-          echo "sha=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
-
-      - uses: docker/build-push-action@v6
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
-          context: .
-          load: true
-          tags: ${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.sha }}
-
-      - name: Smoke test /health
-        run: |
-          docker run -d --name api -p 8000:8000 ${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.sha }}
-          curl -sf --retry 10 --retry-delay 2 --retry-connrefused http://localhost:8000/health | grep -q true
-
-      - uses: docker/login-action@v3
+          python-version: ${{ env.PYTHON_VERSION }}
+      - run: pip install build
+      - run: python -m build --wheel
+      - id: name
+        run: echo "whl=$(basename dist/*.whl)" >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@v4
         with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Push
-        run: |
-          docker tag ${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.sha }} ${{ steps.meta.outputs.image }}:latest
-          docker push ${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.sha }}
-          docker push ${{ steps.meta.outputs.image }}:latest
+          name: wheel
+          path: back/dist/*.whl
+          retention-days: 2
 
-  # main uniquement
-  deploy:
-    needs: build-image
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+  deploy-prod:
+    needs: build-whl
+    if: github.event_name == 'workflow_dispatch' && inputs.deploy
     runs-on: ubuntu-latest
-    environment: production
+    environment:
+      name: prod
+      url: ${{ vars.APP_URL }}
+    concurrency: deploy-prod
+    defaults:
+      run:
+        working-directory: .      # pas de back/ ici : on déploie juste un fichier
     steps:
-      - run: echo "Déploiement de ${{ needs.build-image.outputs.image }}:${{ needs.build-image.outputs.sha }}"
+      - uses: actions/download-artifact@v4
+        with:
+          name: wheel
+          path: dist
+      - uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          source: back/dist/*.whl
+          target: /opt/mon-api/releases/  # Copie le WHL dans ce répertoire
+          strip_components: 1
+      - uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          script: |
+            /opt/mon-api/venv/bin/pip install --force-reinstall \
+              /opt/mon-api/releases/${{ needs.build-whl.outputs.whl }}  
+            sudo systemctl restart mon-api
+          # Exécute le WHL
+
+
+

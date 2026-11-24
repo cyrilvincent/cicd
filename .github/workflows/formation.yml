@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       deploy:
-        description: Déployer en prod
+        description: Déployer en prod # Dans Actions / [Pipeline name] / Run workflow (bouton vert)
         type: boolean
         default: false
 
@@ -158,7 +158,32 @@ jobs:
             /opt/mon-api/venv/bin/pip install --force-reinstall \
               /opt/mon-api/releases/${{ needs.build-whl.outputs.whl }}  
             sudo systemctl restart mon-api
-          # Exécute le WHL
 
+  build-docker:
+    needs: build-whl
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/download-artifact@v4
+        with:
+          name: wheel
+          path: back/dist
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: back
+          push: true
+          build-args: WHL=${{ needs.build-whl.outputs.whl }}
+          tags: |
+            ghcr.io/${{ github.repository }}:latest
+            ghcr.io/${{ github.repository }}:${{ github.sha }}
 
 

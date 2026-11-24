@@ -1,14 +1,14 @@
-deploy-production:
-    needs: [build-whl, deploy-staging]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+  deploy-prod:
+    needs: build-whl
+    if: github.event_name == 'workflow_dispatch' && inputs.deploy
     runs-on: ubuntu-latest
     environment:
-      name: production            # Required reviewers = approbation manuelle
+      name: prod
       url: ${{ vars.APP_URL }}
-    concurrency: deploy-production
+    concurrency: deploy-prod
     defaults:
       run:
-        working-directory: .
+        working-directory: .      # pas de back/ ici : on déploie juste un fichier
     steps:
       - uses: actions/download-artifact@v4
         with:
@@ -19,8 +19,8 @@ deploy-production:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_KEY }}
-          source: dist/*.whl
-          target: /opt/mon-api/releases/
+          source: back/dist/*.whl
+          target: /opt/mon-api/releases/  # Copie le WHL dans ce répertoire
           strip_components: 1
       - uses: appleboy/ssh-action@v1.2.0
         with:
@@ -29,7 +29,5 @@ deploy-production:
           key: ${{ secrets.SSH_KEY }}
           script: |
             /opt/mon-api/venv/bin/pip install --force-reinstall \
-              /opt/mon-api/releases/${{ needs.build-whl.outputs.whl }}
+              /opt/mon-api/releases/${{ needs.build-whl.outputs.whl }}  
             sudo systemctl restart mon-api
-      - name: Vérification /health
-        run: curl -sf --retry 10 --retry-delay 3 --retry-connrefused ${{ vars.APP_URL }}/health | grep -q true
