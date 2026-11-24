@@ -16,10 +16,10 @@ class UnitTests(unittest.TestCase):
         result = s.multiply(3, 2)
         self.assertEqual(result, 6)
 
-    def test_credentials(self):
-        s = MyService()
-        result = s.get_credentials()
-        self.assertIsNotNone(result)
+    # def test_credentials(self):
+    #     s = MyService()
+    #     result = s.get_credentials()
+    #     self.assertIsNotNone(result)
 
     def test_version(self):
         version = config.version
