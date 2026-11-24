@@ -52,6 +52,8 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: staging
+    env:
+      MY_SECRET: ${{secrets.MY_SECRET}}
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-python@v6
@@ -61,8 +63,6 @@ jobs:
           cache-dependency-path: | # Le cache ne tient pas compte de working directory
             ./back/requirements-dev.txt
             ./back/requirements.txt
-        env:
-          MY_SECRET: ${{secrets.MY_SECRET}}
       - run: pip install -r requirements-dev.txt
       - run: cp config-staging.py config.py
       - run: |
