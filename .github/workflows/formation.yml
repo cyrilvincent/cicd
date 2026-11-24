@@ -4,6 +4,12 @@ on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch:
+    inputs:
+      deploy:
+        description: Déployer en prod
+        type: boolean
+        default: false
 
 env:
   PYTHON_VERSION: "3.14"
@@ -118,6 +124,41 @@ jobs:
           name: wheel
           path: back/dist/*.whl
           retention-days: 2
+
+  deploy-prod:
+    needs: build-whl
+    if: github.event_name == 'workflow_dispatch' && inputs.deploy
+    runs-on: ubuntu-latest
+    environment:
+      name: prod
+      url: ${{ vars.APP_URL }}
+    concurrency: deploy-prod
+    defaults:
+      run:
+        working-directory: .      # pas de back/ ici : on déploie juste un fichier
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: wheel
+          path: dist
+      - uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          source: back/dist/*.whl
+          target: /opt/mon-api/releases/  # Copie le WHL dans ce répertoire
+          strip_components: 1
+      - uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          script: |
+            /opt/mon-api/venv/bin/pip install --force-reinstall \
+              /opt/mon-api/releases/${{ needs.build-whl.outputs.whl }}  
+            sudo systemctl restart mon-api
+          # Exécute le WHL
 
 
 
