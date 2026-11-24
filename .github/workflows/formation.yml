@@ -85,8 +85,8 @@ jobs:
           cache-dependency-path: |
             ./back/requirements-dev.txt
             ./back/requirements.txt
-      - run: bandit .
-      - run: pip-audit -r requirements.txt
+      - run: python -m bandit .
+      - run: python -m pip-audit -r requirements.txt
 
 
 
